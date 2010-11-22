@@ -1,5 +1,16 @@
 package net.geohex
 
+/*
+ * "scala-geohex" is a Scala porting of "GeoHex" and "geohex4j",
+ *  licensed under Creative Commons BY-SA 2.1 Japan License.
+ *
+ * * "GeoHex" is licensed by @sa2da (http://geogames.net) 
+ *    under Creative Commons BY-SA 2.1 Japan License.
+ * * "geohex4j" (https://github.com/chsh/geohex4j)  is licensed by CHIKURA Shinsaku
+ *    under Creative Commons BY-SA 2.1 Japan License.
+ * 
+ * Copyright (C) 2010 Pomu TAKEUCHI, Some rights reserved
+ */
 import scala.math._
 
 case class Lat(lat: Double)
