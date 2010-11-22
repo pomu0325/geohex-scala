@@ -55,15 +55,15 @@ http://twitter.com/pomu0325
   ...
 
 # LICENSE
+"scala-geohex" is a Scala porting of "geohex4j" and "GeoHex",
+  licensed under Creative Commons BY-SA 2.1 Japan License.
 
-GeoHex specification is licensed under CC-BY-SA
-by @sa2da http://geogames.net.
+* "geohex4j" (https://github.com/chsh/geohex4j)  is licensed by CHIKURA Shinsaku
+    under Creative Commons BY-SA 2.1 Japan License.
+* "GeoHex" is licensed by @sa2da (http://geogames.net) 
+    under Creative Commons BY-SA 2.1 Japan License.
 
-V2: This Scala code is followed 
-  original JavaScript code license (CC-BY-SA) developed by @sa2da
-  and Java code license (CC-BY-SA) developed by @chshii
-
-Copyright (C) 2010 Pomu TAKEUCHI
+Copyright (C) 2010 Pomu TAKEUCHI, Some rights reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
