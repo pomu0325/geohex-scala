@@ -26,8 +26,6 @@ case class XY(x: Double, y: Double) {
 }
 
 case class Zone(lat: Lat, lon: Lon, x: Double, y: Double, code: String) {
-	private implicit def pair2list[A](p: Pair[A, A]): List[A] = List(p._1, p._2)
-	
 	lazy val level = KEY.indexOf(code(0))
 	
 	lazy val hexSize: Double = calcHexSize(level)
