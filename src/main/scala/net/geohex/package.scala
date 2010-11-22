@@ -46,6 +46,4 @@ package object geohex {
 			(2 * math.atan(math.exp((y / BASE) * 180 * math.Pi / 180)) - math.Pi / 2)
 		Loc(Lat(lat), Lon(lon))
 	}
-	
-	private[geohex] implicit def pair2list[A](p: Pair[A, A]): List[A] = (p._1, p._2)
 }

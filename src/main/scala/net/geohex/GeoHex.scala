@@ -17,9 +17,17 @@ case class Lat(lat: Double)
 case class Lon(lon: Double)	
 case class Loc(lat: Lat, lon: Lon)
 
-case class XY(x: Double, y: Double)
+case class XY(x: Double, y: Double) {
+	def +(that: XY) = XY(x + that.x, y + that.y)
+	def -(that: XY) = XY(x - that.x, y - that.y)
+	def map(fn: Double => Double) = XY(fn(x), fn(y))
+	def mapAsList[A](fn: Double => A): List[A] = List(fn(x), fn(y))
+	def swap = XY(y, x)
+}
 
 case class Zone(lat: Lat, lon: Lon, x: Double, y: Double, code: String) {
+	private implicit def pair2list[A](p: Pair[A, A]): List[A] = List(p._1, p._2)
+	
 	lazy val level = KEY.indexOf(code(0))
 	
 	lazy val hexSize: Double = calcHexSize(level)
@@ -51,7 +59,11 @@ object GeoHex {
 	val version = "2.03"
 	def encode(lat: Double, lon: Double, level: Int) = getZoneByLocation(lat, lon, level).code
 	
-	private def unitXY(size: Double): XY = (6.0 * size, 6.0 * size * K)
+	private def calcHexSizeAndUnit(level: Int): (Double, XY) = {
+		val size = calcHexSize(level)
+		def unitXY(size: Double): XY = (6.0 * size, 6.0 * size * K)
+		(size, unitXY(size))
+	}
 	private def unitMax(unit: XY): Long = round(BASE / unit.x + BASE / unit.y)
 	
 	def getZoneByLocation(lat: Double, lon: Double, level: Int): Zone = {
@@ -62,65 +74,52 @@ object GeoHex {
 		if (level < 0 || level > 24) 
 			throw new IllegalArgumentException("level must be between 1 and 24");
 		
-		val size = calcHexSize(level)
+		val (size, unit) = calcHexSizeAndUnit(level)
 
-		val xy: XY = loc2xy(Lat(lat), Lon(lon))
-		val (lonGrid, latGrid) = (xy.x, xy.y)
-		val unit = unitXY(size)
+		val XY(lonGrid, latGrid) = loc2xy(Lat(lat), Lon(lon))
 		
-		val posX: Double = (lonGrid + latGrid / K) / unit.x 
-		val posY: Double = (latGrid - K * lonGrid) / unit.y
-		
-		val x0: Long = math.floor(posX).longValue
-		val y0: Long = math.floor(posY).longValue
-		
-		val xQ = posX - x0
-		val yQ = posY - y0
-		
-		var x: Long = math.round(posX)
-		var y: Long = math.round(posY)
-		//printf("posY: %s, y0: %s, y: %s\n", posY, y0, y)
+		val posXY = XY(
+					(lonGrid + latGrid / K) / unit.x,
+					(latGrid - K * lonGrid) / unit.y
+				)
+		val xy0 = posXY.map(floor(_))
+		val q = posXY - xy0
+		var xy = posXY.map(round(_))
 
-		if (yQ > -xQ + 1) {
-			if ((yQ < 2 * xQ) && (yQ > 0.5 * xQ)) {
-				x = x0 + 1
-				y = y0 + 1
+		if (q.y > -q.x + 1) {
+			if ((q.y < 2 * q.x) && (q.y > 0.5 * q.x)) {
+				xy = xy0.map {1+}
 			}
-		} else if (yQ < -xQ + 1) {
-			if ((yQ > (2 * xQ) - 1) && (yQ < (0.5 * xQ) + 0.5)) {
-				x = x0
-				y = y0
+		} else if (q.y < -q.x + 1) {
+			if ((q.y > (2 * q.x) - 1) && (q.y < (0.5 * q.x) + 0.5)) {
+				xy = xy0
 			}
 		}
-		val hLat = (K * x * unit.x + y * unit.y) / 2
-		val hLon = (hLat - y * unit.y) / K
+		val hLat = (K * xy.x * unit.x + xy.y * unit.y) / 2
+		val hLon = (hLat - xy.y * unit.y) / K
 		
 		var loc = xy2loc(hLon, hLat)
 		if (BASE - hLon < size) {
-			println((BASE-hLon), size, loc.lon)
+			//println((BASE-hLon), size, loc.lon)
 			loc = loc.copy(lon = Lon(180))
-			val tmp = x
-			x = y
-			y = tmp
+			xy = xy.swap
 		}
 		
-		Zone(loc.lat, loc.lon, x, y, calcCode(x,y,level,unit))
+		Zone(loc.lat, loc.lon, xy.x, xy.y, calcCode(xy,level,unit))
 	}
 	
-	private def calcCode(x: Double, y: Double, level: Int, unit: XY): String = {
+	private def calcCode(xy: XY, level: Int, unit: XY): String = {
 		val max = unitMax(unit)
 		
-		val latY = (K * x * unit.x + y * unit.y) / 2.0
-		val lonX = (latY - y * unit.y) / K
+		val latY = (K * xy.x * unit.x + xy.y * unit.y) / 2.0
+		val lonX = (latY - xy.y * unit.y) / K
 		
-		def _abs(z: Double): Long = {
+		val xyAbs = xy.map {z =>
 			val p = if (z < 0) 1 else 0
-			math.abs(z).longValue * 2 + p
+			math.abs(z) * 2 + p
 		}
-		val xAbs = _abs(x)
-		val yAbs = _abs(y)
 		
-		def enc(abs: Long, i: Int): Char = KEY(i match {
+		def enc(i: Int)(abs: Double): Char = KEY(i match {
 			case 0 => math.floor(abs % 3600).intValue % 60
 			case i => math.floor(abs % pow(60, i+1)).intValue / pow(60, i).intValue
 		})
@@ -128,7 +127,7 @@ object GeoHex {
 		var res: List[Char] = Nil
 		// 1, 60, 3600, 216000, 12960000
 		(0 to 4).takeWhile(max >= pow(60, _) / 2).foreach{i =>
-			res = enc(xAbs, i) :: enc(yAbs, i) :: res
+			res = xyAbs.mapAsList(enc(i)_) ::: res
 		}
 		res = KEY(level % 60) :: res
 		
@@ -138,43 +137,37 @@ object GeoHex {
 	def decode(code: String) = getZoneByCode(code)
 	
 	def getZoneByCode(code: String): Zone = {
-		val level = KEY.indexOf(code(0))
-		val size = calcHexSize(level)
-		val unit = unitXY(size)
-		
 		// 12960000 ...
 		//(5 to (1, -1)).find(i => max >= pow(60, i - 1) / 2) match {
 		//	case Some(codeLen) =>
-		var (x, y) = code.tail.reverse.toList.sliding(2, 2).zipWithIndex.map {
+		val xy = code.tail.reverse.toList.sliding(2, 2).zipWithIndex.map {
 			case (List(y, x), i) => 
-				(KEY.indexOf(x) * pow(60, i),
-				 KEY.indexOf(y) * pow(60, i))
-		} reduceLeft {
-			(_, _) match {
-				case ((x, y), (x2, y2)) => (x + x2, y + y2)
-			}
+				XY(KEY.indexOf(x), KEY.indexOf(y)) map {_ * pow(60, i)}
+		} reduceLeft {_ + _} map {
+			a => if ((a % 2) != 0) -(a - 1) / 2 else a / 2
 		}
 		//	case _ => throw new IllegalArgumentException(code)
 		//}
-		val fn = (a: Double) => if ((a % 2) != 0) -(a - 1) / 2 else a / 2
-		x = fn(x)
-		y = fn(y)
 		
+		val level = KEY.indexOf(code(0))
+		val (_, unit) = calcHexSizeAndUnit(level)
+		
+		val loc = xyu2loc(xy.x, xy.y, unit)
+		
+		Zone(loc.lat, loc.lon, xy.x, xy.y, code)
+	}
+	
+	private def xyu2loc(x: Double, y: Double, unit: XY): Loc = {
 		val latY = (K * x * unit.x + y * unit.y) / 2
 		val lonX = (latY - y * unit.y) / K
 		
-		val loc = xy2loc(lonX, latY)
-		Zone(loc.lat, loc.lon, x, y, code)
+		xy2loc(lonX, latY)
 	}
 	
 	def getZoneByXY(x: Double, y: Double, level: Int): Zone = {
-		val size = calcHexSize(level)
-		val unit = unitXY(size)
+		val (_, unit) = calcHexSizeAndUnit(level)
 		
-		val latY = (K * x * unit.x + y * unit.y) / 2
-		val lonX = (latY - y * unit.y) / K
-		
-		val loc = xy2loc(lonX, latY)
-		Zone(loc.lat, loc.lon, x, y, calcCode(x,y,level,unit))
+		val loc = xyu2loc(x, y, unit)
+		Zone(loc.lat, loc.lon, x, y, calcCode(XY(x,y),level,unit))
 	}
 }
