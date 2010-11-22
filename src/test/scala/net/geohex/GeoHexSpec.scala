@@ -7,6 +7,7 @@ class GeoHexSpec extends Spec {
 	// make it easier to switch test target: Scala <-> Java
 	val encode = GeoHex.encode _
 	val decode = GeoHex.decode _
+	val getZoneByXY = GeoHex.getZoneByXY _
 	
 	describe("encode") {
 		it ("'s result should match with testdata.csv") {
@@ -50,6 +51,20 @@ class GeoHexSpec extends Spec {
 				// re-encode with returned (lat,lon,lv), should yield same code
 				val aCode2 = encode(z.lat, z.lon, level)
 				assert(aCode2 === code)
+			}
+		}
+	}
+	
+	describe("getZoneByXY") {
+		it ("'s result should match with testdata.csv") {
+			doAll {(lat: Lat, lon: Lon, level: Int, code: String) =>
+				val z = decode(code)
+				
+				// re-encode with returned (x,y,lv), should yield same lat,lon
+				val z2 = getZoneByXY(z.x, z.y, level)
+				assert(z2.code === code)
+				assert(z2.lat === z.lat)
+				assert(z2.lon === z.lon)
 			}
 		}
 	}
