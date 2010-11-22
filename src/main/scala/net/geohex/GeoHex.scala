@@ -19,7 +19,7 @@ case class Loc(lat: Lat, lon: Lon)
 
 case class XY(x: Double, y: Double)
 
-case class Zone(lat: Lat, lon: Lon, x: Long, y: Long, code: String) {
+case class Zone(lat: Lat, lon: Lon, x: Double, y: Double, code: String) {
 	lazy val level = KEY.indexOf(code(0))
 	
 	lazy val hexSize: Double = calcHexSize(level)
@@ -79,9 +79,7 @@ object GeoHex {
 		
 		var x: Long = math.round(posX)
 		var y: Long = math.round(posY)
-		printf("posY: %s, y0: %s, y: %s\n", posY, y0, y)
-		
-		val max = unitMax(unit)
+		//printf("posY: %s, y0: %s, y: %s\n", posY, y0, y)
 
 		if (yQ > -xQ + 1) {
 			if ((yQ < 2 * xQ) && (yQ > 0.5 * xQ)) {
@@ -106,39 +104,35 @@ object GeoHex {
 			y = tmp
 		}
 		
-		calcZone(x, y, level, max, loc)
+		Zone(loc.lat, loc.lon, x, y, calcCode(x,y,level,unit))
 	}
 	
-	private def calcZone(x: Long, y: Long, level: Int, max: Long, loc: Loc) = {
-		val xP: Long = if (x < 0) 1 else 0
-		val yP: Long = if (y < 0) 1 else 0
-		val xAbs = math.abs(x) * 2 + xP
-		val yAbs = math.abs(y) * 2 + yP
+	private def calcCode(x: Double, y: Double, level: Int, unit: XY): String = {
+		val max = unitMax(unit)
 		
-		def fn(abs: Long): Tuple5[Int, Int, Int, Int, Int] = (
-			math.floor(abs % 777600000).intValue / 12960000,
-			math.floor(abs % 12960000).intValue / 216000,
-			math.floor(abs % 216000).intValue / 3600,
-			math.floor(abs % 3600).intValue / 60,
-			math.floor(abs % 3600).intValue % 60
-		)
+		val latY = (K * x * unit.x + y * unit.y) / 2.0
+		val lonX = (latY - y * unit.y) / K
 		
-		val (x10000, x1000, x100, x10, x1) = fn(xAbs)
-		val (y10000, y1000, y100, y10, y1) = fn(yAbs)
+		def _abs(z: Double): Long = {
+			val p = if (z < 0) 1 else 0
+			math.abs(z).longValue * 2 + p
+		}
+		val xAbs = _abs(x)
+		val yAbs = _abs(y)
 		
-		println(fn(xAbs))
-		println(fn(yAbs))
+		def enc(abs: Long, i: Int): Char = KEY(i match {
+			case 0 => math.floor(abs % 3600).intValue % 60
+			case i => math.floor(abs % pow(60, i+1)).intValue / pow(60, i).intValue
+		})
 		
-		val sb = new StringBuilder
-		sb.append(KEY(level % 60))
-
-		if (max >= 12960000 / 2) sb.append(KEY(x10000)).append(KEY(y10000))
-		if (max >= 216000 / 2) sb.append(KEY(x1000)).append(KEY(y1000))
-		if (max >= 3600 / 2) sb.append(KEY(x100)).append(KEY(y100))
-		if (max >= 60 /2) sb.append(KEY(x10)).append(KEY(y10))
-		sb.append(KEY(x1)).append(KEY(y1))
+		var res: List[Char] = Nil
+		// 1, 60, 3600, 216000, 12960000
+		(0 to 4).takeWhile(max >= pow(60, _) / 2).foreach{i =>
+			res = enc(xAbs, i) :: enc(yAbs, i) :: res
+		}
+		res = KEY(level % 60) :: res
 		
-		Zone(loc.lat, loc.lon, x, y, sb.toString)
+		res.mkString
 	}
 	
 	def decode(code: String) = getZoneByCode(code)
@@ -147,23 +141,22 @@ object GeoHex {
 		val level = KEY.indexOf(code(0))
 		val size = calcHexSize(level)
 		val unit = unitXY(size)
-		val max = unitMax(unit)
 		
 		// 12960000 ...
 		//(5 to (1, -1)).find(i => max >= pow(60, i - 1) / 2) match {
 		//	case Some(codeLen) =>
 		var (x, y) = code.tail.reverse.toList.sliding(2, 2).zipWithIndex.map {
-					case (List(y, x), i) => 
-						(KEY.indexOf(x) * pow(60, i).longValue,
-						 KEY.indexOf(y) * pow(60, i).longValue)
-				} reduceLeft {
-					(_, _) match {
-						case ((x, y), (x2, y2)) => (x + x2, y + y2)
-					}
-				}
+			case (List(y, x), i) => 
+				(KEY.indexOf(x) * pow(60, i),
+				 KEY.indexOf(y) * pow(60, i))
+		} reduceLeft {
+			(_, _) match {
+				case ((x, y), (x2, y2)) => (x + x2, y + y2)
+			}
+		}
 		//	case _ => throw new IllegalArgumentException(code)
 		//}
-		val fn = (a: Long) => if ((a % 2) != 0) -(a - 1) / 2 else a / 2
+		val fn = (a: Double) => if ((a % 2) != 0) -(a - 1) / 2 else a / 2
 		x = fn(x)
 		y = fn(y)
 		
@@ -174,15 +167,14 @@ object GeoHex {
 		Zone(loc.lat, loc.lon, x, y, code)
 	}
 	
-	def getZoneByXY(x: Long, y: Long, level: Int): Zone = {
+	def getZoneByXY(x: Double, y: Double, level: Int): Zone = {
 		val size = calcHexSize(level)
 		val unit = unitXY(size)
-		val max = unitMax(unit)
 		
-		val latY = (K * x * unit.x + y * unit.y) / 2.0
+		val latY = (K * x * unit.x + y * unit.y) / 2
 		val lonX = (latY - y * unit.y) / K
 		
 		val loc = xy2loc(lonX, latY)
-		calcZone(x, y, level, max, loc)
+		Zone(loc.lat, loc.lon, x, y, calcCode(x,y,level,unit))
 	}
 }
