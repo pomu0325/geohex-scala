@@ -80,7 +80,7 @@ object GeoHex {
 					(lonGrid + latGrid / K) / unit.x,
 					(latGrid - K * lonGrid) / unit.y
 				)
-		val xy0 = posXY.map(floor(_))
+		val xy0 = posXY.map {floor}
 		val q = posXY - xy0
 		var xy = posXY.map(round(_))
 
@@ -138,7 +138,7 @@ object GeoHex {
 		// 12960000 ...
 		//(5 to (1, -1)).find(i => max >= pow(60, i - 1) / 2) match {
 		//	case Some(codeLen) =>
-		val xy = code.tail.reverse.toList.sliding(2, 2).zipWithIndex.map {
+		val xy = code.tail.reverse.toList.grouped(2).zipWithIndex.map {
 			case (List(y, x), i) => 
 				XY(KEY.indexOf(x), KEY.indexOf(y)) map {_ * pow(60, i)}
 		} reduceLeft {_ + _} map {
