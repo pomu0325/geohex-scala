@@ -25,10 +25,10 @@ case class XY(x: Double, y: Double) {
 	def swap = XY(y, x)
 }
 
-case class Zone(lat: Lat, lon: Lon, x: Double, y: Double, code: String) {
-	lazy val level = KEY.indexOf(code(0))
+case class Zone(lat: Lat, lon: Lon, x: Long, y: Long, code: String) {
+	lazy val level = code.length - 2
 	
-	lazy val hexSize: Double = calcHexSize(level)
+	lazy val hexSize: Double = calcHexSize(level + 2)
 	
 	lazy val hexCoords: List[Loc] = {
 		val xy: XY = loc2xy(lat, lon)
@@ -54,7 +54,7 @@ case class Zone(lat: Lat, lon: Lon, x: Double, y: Double, code: String) {
 }
 
 object GeoHex {
-	val version = "2.03"
+	val version = "3.0"
 	def encode(lat: Double, lon: Double, level: Int) = getZoneByLocation(lat, lon, level).code
 	
 	private def calcHexSizeAndUnit(level: Int): (Double, XY) = {
@@ -69,10 +69,11 @@ object GeoHex {
 			throw new IllegalArgumentException("latitude must be between -90 and 90");
 		if (lon < -180 || lon > 180)
 			throw new IllegalArgumentException("longitude must be between -180 and 180");
-		if (level < 0 || level > 24) 
+		if (level < 0 || level > 15)
 			throw new IllegalArgumentException("level must be between 1 and 24");
-		
-		val (size, unit) = calcHexSizeAndUnit(level)
+
+    val lv = level + 2
+		val (size, unit) = calcHexSizeAndUnit(lv)
 
 		val XY(lonGrid, latGrid) = loc2xy(Lat(lat), Lon(lon))
 		
@@ -102,8 +103,36 @@ object GeoHex {
 			loc = loc.copy(lon = Lon(180))
 			xy = xy.swap
 		}
-		
-		Zone(loc.lat, loc.lon, xy.x, xy.y, calcCode(xy,level,unit))
+
+    def code3(code3: List[Int], mod: Double)(i: Int): (List[Int],  Double) = {
+      val hPow = math.pow(3, lv - i)
+      if (mod >= math.ceil(hPow / 2)) {
+        (code3 ::: List(2), mod - hPow)
+      } else if (mod <= -math.ceil(hPow / 2)) {
+        (code3 ::: List(0), mod + hPow)
+      } else {
+        (code3 ::: List(1), mod)
+      }
+    }
+
+    val (code3x, modX) = (0 to lv).foldLeft((List[Int](), xy.x)){(a, i) =>
+      code3(a._1, a._2)(i)
+    }
+    val (code3y, modY) = (0 to lv).foldLeft((List[Int](), xy.y)){(a, i) =>
+      code3(a._1, a._2)(i)
+    }
+
+    val code = code3x.zip(code3y).map {
+      case (x,y) => Integer.parseInt(("" + x + y).toString, 3).toString
+    }.mkString
+
+    val h2 = code.substring(3)
+    val h1 = code.take(3).mkString.toInt
+    val a1 = math.floor(h1 / 30).toInt
+    val a2 = h1 % 30
+    val r = "" + KEY(a1) + KEY(a2) + h2
+
+		Zone(loc.lat, loc.lon, xy.x.toLong, xy.y.toLong, r)
 	}
 	
 	private def calcCode(xy: XY, level: Int, unit: XY): String = {
@@ -121,7 +150,7 @@ object GeoHex {
 			case 0 => math.floor(abs % 3600).intValue % 60
 			case i => math.floor(abs % pow(60, i+1)).intValue / pow(60, i).intValue
 		})
-		
+
 		var res: List[Char] = Nil
 		// 1, 60, 3600, 216000, 12960000
 		(0 to 4).takeWhile(max >= pow(60, _) / 2).foreach{i =>
@@ -152,7 +181,7 @@ object GeoHex {
 		
 		val loc = xyu2loc(xy.x, xy.y, unit)
 		
-		Zone(loc.lat, loc.lon, xy.x, xy.y, code)
+		Zone(loc.lat, loc.lon, xy.x.toLong, xy.y.toLong, code)
 	}
 	
 	private def xyu2loc(x: Double, y: Double, unit: XY): Loc = {
@@ -161,11 +190,13 @@ object GeoHex {
 		
 		xy2loc(lonX, latY)
 	}
-	
-	def getZoneByXY(x: Double, y: Double, level: Int): Zone = {
+
+  /*
+	def getZoneByXY(x: Long, y: Long, level: Int): Zone = {
 		val (_, unit) = calcHexSizeAndUnit(level)
 		
 		val loc = xyu2loc(x, y, unit)
 		Zone(loc.lat, loc.lon, x, y, calcCode(XY(x,y),level,unit))
 	}
+	*/
 }

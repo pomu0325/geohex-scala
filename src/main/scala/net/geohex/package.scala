@@ -13,7 +13,7 @@ package net
  */
 
 package object geohex {
-	val KEY = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	val KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 	val BASE = 20037508.34
 	val DEG = math.Pi * (30.0 / 180.0)
 	val K = math.tan(DEG)
@@ -23,7 +23,7 @@ package object geohex {
 	implicit def lat2double(lat: Lat): Double = lat.lat
 	implicit def lon2double(lon: Lon): Double = lon.lon
 	
-	private[geohex] def calcHexSize(level: Int): Double = BASE / math.pow(2.0, level) / 3.0
+	private[geohex] def calcHexSize(level: Int): Double = BASE / math.pow(3.0, level + 1)
 	
 	private[geohex] implicit def loc2xy(loc: Loc): XY = {
 		import loc._

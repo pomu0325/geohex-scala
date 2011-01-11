@@ -7,11 +7,11 @@ class GeoHexSpec extends Spec {
 	// make it easier to switch test target: Scala <-> Java
 	val encode = GeoHex.encode _
 	val decode = GeoHex.decode _
-	val getZoneByXY = GeoHex.getZoneByXY _
+	//val getZoneByXY = GeoHex.getZoneByXY _
 	
 	describe("encode") {
 		it ("'s result should match with testdata.csv") {
-			doAll {(lat: Lat, lon: Lon, level: Int, expect: String) =>
+			doAll ("src/test/resources/testdata_ll2hex.csv") {(lat: Lat, lon: Lon, level: Int, expect: String) =>
 				val actual = encode(lat, lon, level)
 				assert(actual === expect)
 			}
@@ -39,10 +39,10 @@ class GeoHexSpec extends Spec {
 		}
 	}
 	
-	
+	/*
 	describe("decode") {
 		it ("'s result should match with testdata.csv") {
-			doAll {(lat: Lat, lon: Lon, level: Int, code: String) =>
+			doAll () {(lat: Lat, lon: Lon, level: Int, code: String) =>
 				//val z @ Zone(aLat, aLon, _, _, aCode) = GeoHex.decode(code)
 				val z = decode(code)
 				printf("Zone(%s %s %s %s %s)\n", z.lat, z.lon, z.x, z.y, z.code)
@@ -54,10 +54,10 @@ class GeoHexSpec extends Spec {
 			}
 		}
 	}
-	
+
 	describe("getZoneByXY") {
 		it ("'s result should match with testdata.csv") {
-			doAll {(lat: Lat, lon: Lon, level: Int, code: String) =>
+			doAll ("src/test/resources/testdata_ll2hex.csv") {(lat: Lat, lon: Lon, level: Int, code: String) =>
 				val z = decode(code)
 				
 				// re-encode with returned (x,y,lv), should yield same lat,lon
@@ -68,10 +68,11 @@ class GeoHexSpec extends Spec {
 			}
 		}
 	}
-	
-	def doAll(fn: (Lat, Lon, Int, String) => Unit) = {
+	*/
+
+	def doAll(file: String = "src/test/resources/testdata.csv")(fn: (Lat, Lon, Int, String) => Unit) = {
 		// lat,lon,level,code
-		for (line <- Source.fromFile("src/test/resources/testdata.csv").getLines) {
+		for (line <- Source.fromFile(file).getLines) {
 			println(line)
 			if (!line.startsWith("#")) {	// skip commented line
 				val vals = line.split(",")
