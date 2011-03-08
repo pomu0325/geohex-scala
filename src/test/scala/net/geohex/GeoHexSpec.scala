@@ -11,7 +11,7 @@ class GeoHexSpec extends Spec {
 	
 	describe("encode") {
 		it ("'s result should match with testdata.csv") {
-			doAll ("src/test/resources/testdata_ll2hex.csv") {(lat: Lat, lon: Lon, level: Int, expect: String) =>
+			doAll ("src/test/resources/testdata_ll2hex.txt") {(lat: Lat, lon: Lon, level: Int, expect: String) =>
 				val actual = encode(lat, lon, level)
 				assert(actual === expect)
 			}
@@ -31,11 +31,14 @@ class GeoHexSpec extends Spec {
 			}
 		}
 		
-		it("should throw IAE when level is not between 1 ~ 24") {
+		it("should throw IAE when level is not between 0 ~ 24") {
 			intercept[IllegalArgumentException] {
-				encode(40, 139, 0)
+				encode(40, 139, -1)
 				encode(40, 139, 25)
 			}
+
+      encode(40, 139, 0)
+      encode(40, 139, 24)
 		}
 	}
 	
@@ -57,7 +60,7 @@ class GeoHexSpec extends Spec {
 
 	describe("getZoneByXY") {
 		it ("'s result should match with testdata.csv") {
-			doAll ("src/test/resources/testdata_ll2hex.csv") {(lat: Lat, lon: Lon, level: Int, code: String) =>
+			doAll ("src/test/resources/testdata_ll2hex.txt") {(lat: Lat, lon: Lon, level: Int, code: String) =>
 				val z = decode(code)
 				
 				// re-encode with returned (x,y,lv), should yield same lat,lon
