@@ -69,8 +69,8 @@ object GeoHex {
 			throw new IllegalArgumentException("latitude must be between -90 and 90");
 		if (lon < -180 || lon > 180)
 			throw new IllegalArgumentException("longitude must be between -180 and 180");
-		if (level < 0 || level > 24)
-			throw new IllegalArgumentException("level must be between 0 and 24");
+		if (level < 0 || level > 15)
+			throw new IllegalArgumentException("level must be between 0 and 15");
 
     val lv = level + 2
 		val (size, unit) = calcHexSizeAndUnit(lv)

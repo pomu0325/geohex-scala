@@ -31,14 +31,14 @@ class GeoHexSpec extends Spec {
 			}
 		}
 		
-		it("should throw IAE when level is not between 0 ~ 24") {
+		it("should throw IAE when level is not between 0 ~ 15") {
 			intercept[IllegalArgumentException] {
 				encode(40, 139, -1)
-				encode(40, 139, 25)
+				encode(40, 139, 16)
 			}
 
       encode(40, 139, 0)
-      encode(40, 139, 24)
+      encode(40, 139, 15)
 		}
 	}
 	
