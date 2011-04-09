@@ -49,7 +49,7 @@ class GeoHexSpec extends Spec {
 				//println(z)
 				assert(z.code === code)
         assert(z.level === level)
-        assert((z.lat - lat).toLong === 0)
+        assert(((z.lat - lat) * 1000000000L).toLong === 0)
         val lonDiff = (z.lon - lon).toLong match {
           case -360 | 360 => 0
           case e => e
@@ -69,6 +69,32 @@ class GeoHexSpec extends Spec {
       doAll ("src/test/resources/testdata_ll2hexsize.txt") {(lat: Lat, lon: Lon, level: Int, code: String) =>
         val z = GeoHex.getZoneByLocation(lat, lon, level)
         assert(z.hexSize.toString === code)
+      }
+    }
+
+    it("'s hexCoords should match with testdata_ll2polygon.txt") {
+      for (line <- Source.fromFile("src/test/resources/testdata_ll2polygon.txt").getLines) {
+        line.split(",").toList match {
+          case List(lat, lon, lv, lat0, lon0, lat1, lon1, lat2, lon2, lat3, lon3, lat4, lon4, lat5, lon5) =>
+            val z = GeoHex.getZoneByLocation(lat.toDouble, lon.toDouble, lv.toInt)
+            println(z)
+            val p = z.hexCoords
+            println(p)
+            assert(((p(0).lat - lat0.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(0).lon - lon0.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(1).lat - lat1.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(1).lon - lon1.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(2).lat - lat2.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(2).lon - lon2.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(3).lat - lat3.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(3).lon - lon3.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(4).lat - lat4.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(4).lon - lon4.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(5).lat - lat5.toDouble) * 1000000000L).toLong === 0)
+            assert(((p(5).lon - lon5.toDouble) * 1000000000L).toLong === 0)
+          case _ =>
+            fail("invalid line")
+        }
       }
     }
   }
@@ -98,7 +124,7 @@ class GeoHexSpec extends Spec {
 				vals.toList match {
 					case List(lat, lon, level, code) =>
 						fn(Lat(lat.toDouble), Lon(lon.toDouble), level.toInt, code)
-					case _ => fail("invalid line in testdata.csv: " + line)
+					case _ => fail("invalid line in %s: %s".format(file, line))
 				}
 			}
 		}

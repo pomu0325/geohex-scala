@@ -32,7 +32,7 @@ case class Zone(lat: Lat, lon: Lon, x: Long, y: Long, code: String) {
 	
 	lazy val hexCoords: List[Loc] = {
 		val xy: XY = loc2xy(lat, lon)
-		val deg = math.tan(math.Pi * (60 / 180))
+		val deg = tan(Pi * (60.0 / 180.0))
 		
 		val top = xy2loc(xy.x, xy.y + deg * hexSize).lat 
 		val btm = xy2loc(xy.x, xy.y - deg * hexSize).lat 
