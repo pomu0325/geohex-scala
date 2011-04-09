@@ -37,11 +37,7 @@ package object geohex {
 	
 	private[geohex] implicit def xy2loc(xy: XY): Loc = {
 		import xy._
-		val lon = (x / BASE) * 180 match {	// lon must be between -180 ~ 180
-			case d if d > 180.0 => 180.0
-			case d if d < -180.0 => -180.0
-			case d => d
-		}
+		val lon = (x / BASE) * 180
 		val lat = 180 / math.Pi *
 			(2 * math.atan(math.exp((y / BASE) * 180 * math.Pi / 180)) - math.Pi / 2)
 		Loc(Lat(lat), Lon(lon))

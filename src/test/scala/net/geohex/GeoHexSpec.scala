@@ -10,7 +10,7 @@ class GeoHexSpec extends Spec {
 	//val getZoneByXY = GeoHex.getZoneByXY _
 	
 	describe("encode") {
-		it ("'s result should match with testdata.csv") {
+		it ("'s result should match with testdata_ll2hex.txt") {
 			doAll ("src/test/resources/testdata_ll2hex.txt") {(lat: Lat, lon: Lon, level: Int, expect: String) =>
 				val actual = encode(lat, lon, level)
 				assert(actual === expect)
@@ -42,15 +42,21 @@ class GeoHexSpec extends Spec {
 		}
 	}
 	
-	/*
 	describe("decode") {
-		it ("'s result should match with testdata.csv") {
-			doAll () {(lat: Lat, lon: Lon, level: Int, code: String) =>
-				//val z @ Zone(aLat, aLon, _, _, aCode) = GeoHex.decode(code)
+		it ("'s result should match with testdata_hex2ll.txt") {
+			doAll ("src/test/resources/testdata_hex2ll.txt") {(lat: Lat, lon: Lon, level: Int, code: String) =>
 				val z = decode(code)
-				printf("Zone(%s %s %s %s %s)\n", z.lat, z.lon, z.x, z.y, z.code)
+				//println(z)
 				assert(z.code === code)
-				
+        assert(z.level === level)
+        assert((z.lat - lat).toLong === 0)
+        val lonDiff = (z.lon - lon).toLong match {
+          case -360 | 360 => 0
+          case e => e
+        }
+
+        assert(lonDiff === 0)
+
 				// re-encode with returned (lat,lon,lv), should yield same code
 				val aCode2 = encode(z.lat, z.lon, level)
 				assert(aCode2 === code)
@@ -58,6 +64,7 @@ class GeoHexSpec extends Spec {
 		}
 	}
 
+  /*
 	describe("getZoneByXY") {
 		it ("'s result should match with testdata.csv") {
 			doAll ("src/test/resources/testdata_ll2hex.txt") {(lat: Lat, lon: Lon, level: Int, code: String) =>

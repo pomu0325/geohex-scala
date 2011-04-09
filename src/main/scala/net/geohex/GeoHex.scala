@@ -164,24 +164,60 @@ object GeoHex {
 	def decode(code: String) = getZoneByCode(code)
 	
 	def getZoneByCode(code: String): Zone = {
-		// 12960000 ...
-		//(5 to (1, -1)).find(i => max >= pow(60, i - 1) / 2) match {
-		//	case Some(codeLen) =>
-		val xy = code.tail.reverse.toList.grouped(2).zipWithIndex.map {
-			case (List(y, x), i) => 
-				XY(KEY.indexOf(x), KEY.indexOf(y)) map {_ * pow(60, i)}
-		} reduceLeft {_ + _} map {
-			a => if ((a % 2) != 0) -(a - 1) / 2 else a / 2
-		}
-		//	case _ => throw new IllegalArgumentException(code)
-		//}
-		
-		val level = KEY.indexOf(code(0))
-		val (_, unit) = calcHexSizeAndUnit(level)
-		
-		val loc = xyu2loc(xy.x, xy.y, unit)
-		
-		Zone(loc.lat, loc.lon, xy.x.toLong, xy.y.toLong, code)
+    val level = code.length
+    val size = calcHexSize(level)
+    val unitX = 6 * size
+    val unitY = 6 * size * K
+
+    var x, y = 0L
+
+    var dec9 = "" + (KEY.indexOf(code(0)) * 30 + KEY.indexOf(code(1))) + code.substring(2)
+
+    val Inc15 = "15"
+    val Exc125 = "125"
+    if (Inc15.contains(dec9(0)) && !Exc125.contains(dec9(1)) && !Exc125.contains(dec9(2))) {
+      if (dec9(0) == '5') {
+        dec9 = "7" + dec9.drop(1)
+      } else if (dec9(0) == '1') {
+        dec9 = "3" + dec9.drop(1)
+      }
+    }
+
+    val fill = (level + 1 - dec9.length)
+    dec9 = ("0" * fill) + dec9
+
+    dec9.map{c =>
+      Integer.toString(c.toString.toInt, 3) match {
+        case d if d.length == 1 => "0" + d
+        case d => d
+      }
+    }.mkString.grouped(2).map{cc =>
+      (cc(0), cc(1))
+    }.zipWithIndex.foreach{case ((decX, decY), i) =>
+      val pow = math.pow(3, level - i).toLong
+      x += (decX match {
+        case '0' => -pow
+        case '2' => +pow
+        case _ => 0
+      })
+      y += (decY match {
+        case '0' => -pow
+        case '2' => +pow
+        case _ => 0
+       })
+    }
+
+    val latY = (K * x * unitX + y * unitY) / 2.0
+    val lonX = (latY - y * unitY) / K
+
+    val loc = xy2loc(lonX, latY) match {
+      case loc if loc.lon > 180 =>
+        loc.copy(lon = Lon(loc.lon - 360))
+      case loc if loc.lon < -180 =>
+        loc.copy(lon = Lon(loc.lon + 360))
+      case loc => loc
+    }
+    Zone(loc.lat, loc.lon, x, y, code)
 	}
 	
 	private def xyu2loc(x: Double, y: Double, unit: XY): Loc = {
