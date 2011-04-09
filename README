@@ -1,13 +1,13 @@
 GeoHex for Scala
 
 # GeoHex for Scala DESCRIPTION
-GeoHex V2 for Scala implemented by @pomu0325.
+GeoHex V3 for Scala implemented by @pomu0325.
 http://twitter.com/pomu0325
 
 # GeoHex object
 * GeoHex object can convert between latitude/longitude and GeoHex
-  V2: ported from 
-    JavaScript implementation by @sa2da (http://geohex.net/hex_v2.03_core.js), and
+  V3: ported from
+    JavaScript implementation by @sa2da (http://geohex.net/hex_v3_core.js), and
     Java implementation by @chshii (https://github.com/chsh/geohex4j)
 
   Currently only #decode, #encode, #getZoneByLocation and #getZoneByCode methods are ready.
@@ -25,34 +25,23 @@ http://twitter.com/pomu0325
   import net.geohex._
 
   val code: String = GeoHex.encode(35.780516755235475, 139.57031250000003, 9)
-  // code -> "jjdK3"
-  val z: Zone = GeoHex.decode("jjdK3") // decode method is an alias of getZoneByCode.
-  // z.lat -> 35.780516755235475
-  // z.lon -> 139.57031250000003
-  // z.level -> 9
-  // z.getHexSize() -> 13045.252825520833
-  val polygon: Array[Loc] = z.polygon
+  // code -> "XM566370240"
+  val zone1: Zone = GeoHex.getZoneByLocation(35.780516755235475, 139.57031250000003, 9)
+  // zone1.code -> "XM566370240"
+
+  val zone2: Zone = GeoHex.decode("XM566370240") // decode method is an alias of getZoneByCode.
+  // zone2.lat -> 35.78044332128247
+  // zone2.lon -> 139.57018747142203
+  // zone2.level -> 9
+  // zone2.hexSize -> 37.70410702222824
+  val polygon: List[Loc] = z.hexCoords
   // [0]:{35.780516755235475,139.33593750000003}
   // [1]:{35.945011915675025,139.45312500000006}
   // [2]:{35.945011915675025,139.68750000000006}
   // [3]:{35.780516755235475,139.80468750000006}
   // [4]:{35.61568052680066,139.68750000000006}
   // [5]:{35.61568052680066,139.45312500000006}
-
-  or
-
-  val zone1: Zone = GeoHex.getZoneByLocation(35.780516755235475, 139.57031250000003, 9)
-  // zone1.code -> "jjdK3"
-  val zone2: Zone = GeoHex.getZoneByCode("jjdK3")
-  // zone2.lat -> 35.780516755235475
-  // zone2.lon -> 139.57031250000003
-  // zone2.level -> 9
-  // ...
-  val zone3: Zone = GeoHex.getZoneByXY(293.0, -104.0, 9)
-  // zone3.lat -> 35.780516755235475
-  // zone3.lon -> 139.57031250000003
-  // zone3.level -> 9
-  ...
+ ...
 
 # LICENSE
 "scala-geohex" is a Scala porting of "GeoHex" and "geohex4j",
@@ -63,7 +52,7 @@ http://twitter.com/pomu0325
 * "geohex4j" (https://github.com/chsh/geohex4j)  is licensed by CHIKURA Shinsaku
     under Creative Commons BY-SA 2.1 Japan License.
 
-Copyright (C) 2010 Pomu TAKEUCHI, Some rights reserved
+Copyright (C) 2010-2011 Pomu TAKEUCHI, Some rights reserved
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

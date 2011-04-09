@@ -64,6 +64,15 @@ class GeoHexSpec extends Spec {
 		}
 	}
 
+  describe("getZoneByLocation") {
+    it ("'s hexSize should match with testdata_hex2hexsize.txt") {
+      doAll ("src/test/resources/testdata_ll2hexsize.txt") {(lat: Lat, lon: Lon, level: Int, code: String) =>
+        val z = GeoHex.getZoneByLocation(lat, lon, level)
+        assert(z.hexSize.toString === code)
+      }
+    }
+  }
+
   /*
 	describe("getZoneByXY") {
 		it ("'s result should match with testdata.csv") {
